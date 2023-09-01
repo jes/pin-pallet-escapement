@@ -1,6 +1,7 @@
 "use strict";
 
 let Engine = Matter.Engine,
+    Events = Matter.Events,
     Render = Matter.Render,
     Runner = Matter.Runner,
     Bodies = Matter.Bodies,
@@ -125,6 +126,11 @@ function update() {
     let freeBox = Bodies.rectangle(250, 0, 30, 30);
     Body.setMass(freeBox, 0.0001);
     Composite.add(engine.world, freeBox);
+
+    Events.on(engine, 'beforeUpdate', function() {
+        if (Body.getAngularVelocity(escapeWheel) < 0.01)
+            escapeWheel.torque = 0.00001;
+    });
 }
 
 // opts:

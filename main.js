@@ -53,6 +53,35 @@ let escapeWheel = null;
 let escapeWheelConstraint = null;
 let palletBody = null;
 let palletBodyConstraint = null;
+
+Events.on(engine, 'afterUpdate', function() {
+    if (!escapeWheel) return;
+
+    let pivotsep = 31; // mm
+    let banking1 = -15; // deg
+    let banking2 = 15; // deg
+
+    // fix centres
+    escapeWheel.position = {x:WIDTH/2, y:HEIGHT*2/3};
+    escapeWheel.velocity = {x: 0, y: 0};
+   // palletBody.position = {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep}; // XXX: commented out because it makes things unstable
+    /*palletBody.velocity = {x:0, y:0};
+
+    // limit banking
+    if (palletBody.angle < banking1*Math.PI/180) {
+        palletBody.angle = banking1*Math.PI/180;
+        Body.setAngularVelocity(palletBody, 0);
+    }
+    if (palletBody.angle > banking2*Math.PI/180) {
+        palletBody.torque = banking2*Math.PI/180;
+        Body.setAngularVelocity(palletBody, 0);
+    }*/
+
+    // rotate escape wheel
+    if (Body.getAngularVelocity(escapeWheel) < 0.01)
+        escapeWheel.torque = 0.0001;
+});
+
 function update() {
     // TODO: don't update if nothing has changed
 
@@ -102,7 +131,7 @@ function update() {
         locklength: locklength,
         impulselength: impulselength,
     });
-    Body.setMass(escapeWheel, 0.0001);
+    Body.setMass(escapeWheel, 0.001);
     Body.translate(escapeWheel, {x:WIDTH/2, y:HEIGHT*2/3});
 
     escapeWheelConstraint = Constraint.create({
@@ -112,25 +141,25 @@ function update() {
     });
     Composite.add(engine.world, [escapeWheel, escapeWheelConstraint]);
 
-    palletBody = Body.create({parts: [makePallet(pallet1), makePallet(pallet2)]});
-    Body.setMass(palletBody, 0.0001);
+    let p1 = makePallet(pallet1);
+    let p2 = makePallet(pallet2);
+    let triangle = Bodies.fromVertices(0, 0, [
+        {x: 0, y: 0},
+        {x: p1.position.x, y: p1.position.y},
+        {x: p2.position.x, y: p2.position.y},
+    ]);
+    Body.setMass(triangle, 0.001);
+
+    palletBody = Body.create({parts: [p1, p2, triangle], friction:0.0, frictionAir: 0.1, frictionStatic: 0.1, restitution: 0.0});
     Body.translate(palletBody, {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep});
 
     palletBodyConstraint = Constraint.create({
-        pointA: {x: palletBody.position.x, y: palletBody.position.y},
+        pointA: {x: WIDTH/2, y: escapeWheel.position.y-PX_PER_MM*pivotsep},
         bodyB: palletBody,
-        pointB: {x:0, y:0},
+        pointB: {x:0, y:-15},
     });
+
     Composite.add(engine.world, [palletBody, palletBodyConstraint]);
-
-    let freeBox = Bodies.rectangle(250, 0, 30, 30);
-    Body.setMass(freeBox, 0.0001);
-    Composite.add(engine.world, freeBox);
-
-    Events.on(engine, 'beforeUpdate', function() {
-        if (Body.getAngularVelocity(escapeWheel) < 0.01)
-            escapeWheel.torque = 0.00001;
-    });
 }
 
 // opts:
@@ -148,10 +177,10 @@ function makeEscapeWheel(opts) {
         parts.push(makeEscapeTooth(opts, i*(360/opts.numteeth)));
     }
 
-    return Body.create({ parts: parts, friction: 0.0, frictionAir: 0.0, frictionStatic: 0.0, restitution: 0.0 });
+    return Body.create({ parts: parts, friction: 0.0, frictionAir: 0.1, frictionStatic: 0.1, restitution: 0.0 });
 }
 
-// create 1 escape tooth, with centre of wheel at (0,0)
+// create an escape wheel tooth at the given angle
 function makeEscapeTooth(opts, angle) {
     let startpoint = {x: 0, y: PX_PER_MM*opts.centrediameter/2};
     let lockpoint = Vector.add(startpoint, Vector.rotate({x: 0, y: PX_PER_MM*opts.locklength}, opts.lockangle*Math.PI/180));
@@ -180,7 +209,9 @@ function makeEscapeTooth(opts, angle) {
 function makePallet(opts) {
     let x = opts.distance/2 * Math.sin(opts.angle * Math.PI/180);
     let y = opts.distance/2 * Math.cos(opts.angle * Math.PI/180);
-    return Bodies.circle(PX_PER_MM*x, PX_PER_MM*y, PX_PER_MM*(opts.diameter/2), {friction:0.0, frictionAir: 0.0, frictionStatic: 0.0, restitution: 0.0});
+    let b = Bodies.circle(PX_PER_MM*x, PX_PER_MM*y, PX_PER_MM*(opts.diameter/2), {friction:0.1, frictionAir: 0.1, frictionStatic: 0.1, restitution: 0.0});
+    Body.setMass(b, 0.001);
+    return b;
 }
 
 update();

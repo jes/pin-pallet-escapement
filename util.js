@@ -3,5 +3,5 @@ function el(id) {
 }
 
 function val(id) {
-    return el(id).value;
+    return parseFloat(el(id).value);
 }

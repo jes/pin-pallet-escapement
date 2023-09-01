@@ -14,6 +14,10 @@ let engine = Engine.create();
 let render = Render.create({
     element: el('matter'),
     engine: engine,
+    options: {
+        width: 400,
+        height: 600,
+    },
 });
 let runner = Runner.create();
 
@@ -28,6 +32,8 @@ Runner.run(runner, engine);
 let escapeWheel = null;
 let escapeWheelConstraint = null;
 function update() {
+    // TODO: don't update if nothing has changed
+
     // general
     let pivotsep = 31; // mm
     let banking1 = -15; // deg
@@ -48,11 +54,11 @@ function update() {
 
     // escape wheel
     let numteeth = Math.abs(val('numteeth'));
-    let lockangle = 45; // deg
-    let impulseangle = -45; // deg
-    let centrediameter = 30; // mm
-    let locklength = 15; // mm
-    let impulselength = 4; // mm
+    let lockangle = val('lockangle'); // deg
+    let impulseangle = val('impulseangle') // deg
+    let centrediameter = val('centrediameter'); // mm
+    let locklength = val('locklength'); // mm
+    let impulselength = val('impulselength'); // mm
 
     // view scaling
     let width_mm = (centrediameter + locklength*2 + impulselength*2) * 1.5;
@@ -109,6 +115,10 @@ function makeEscapeTooth(opts, angle) {
     let lockpoint = Vector.add(startpoint, Vector.rotate({x: 0, y: PX_PER_MM*opts.locklength}, opts.lockangle*Math.PI/180));
     let impulsepoint = Vector.add(lockpoint, Vector.rotate({x: 0, y: PX_PER_MM*opts.impulselength}, opts.impulseangle*Math.PI/180));
 
+    // TODO: impulsepoint is wrong because it is translated away from the
+    // radial after being rotated relative to the radial, which means the
+    // angle is no longer relative to the radial
+
     startpoint = Vector.rotate(startpoint, angle*Math.PI/180);
     lockpoint = Vector.rotate(lockpoint, angle*Math.PI/180);
     impulsepoint = Vector.rotate(impulsepoint, angle*Math.PI/180);
@@ -123,5 +133,7 @@ function makeEscapeTooth(opts, angle) {
 
 update();
 
-el('numteeth').onchange = update;
-el('numteeth').onkeyup = update;
+for (let elem of ['numteeth', 'centrediameter', 'lockangle', 'impulseangle', 'locklength', 'impulselength']) {
+    el(elem).onchange = update;
+    el(elem).onkeyup = update;
+}

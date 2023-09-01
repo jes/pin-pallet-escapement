@@ -6,7 +6,9 @@ let Engine = Matter.Engine,
     Bodies = Matter.Bodies,
     Body = Matter.Body,
     Composite = Matter.Composite,
-    Constraint = Matter.Constraint;
+    Constraint = Matter.Constraint,
+    Vector = Matter.Vector,
+    Vertices = Matter.Vertices;
 
 let engine = Engine.create();
 let render = Render.create({
@@ -46,13 +48,14 @@ function update() {
 
     // escape wheel
     let numteeth = Math.abs(val('numteeth'));
-    let lockangle = -45; // deg
-    let impulseangle = 45; // deg
-    let lockdiameter = 43; // mm
-    let impulsediameter = 48.5; // mm
+    let lockangle = 45; // deg
+    let impulseangle = -45; // deg
+    let centrediameter = 30; // mm
+    let locklength = 15; // mm
+    let impulselength = 4; // mm
 
     // view scaling
-    let width_mm = (impulsediameter/2 + pivotsep) * 1.4;
+    let width_mm = (centrediameter + locklength*2 + impulselength*2) * 1.5;
     MM_PER_PX = width_mm / WIDTH;
     PX_PER_MM = 1 / MM_PER_PX;
 
@@ -61,21 +64,15 @@ function update() {
         Composite.remove(engine.world, escapeWheelConstraint);
     }
 
-    // TODO: if the fork passes over the escape wheel and the pallets
-    // engage on the opposite side, we'll infer centrediameter=0, which
-    // is wrong
-    let centrediameter = (pivotsep - Math.max(pallet1.distance + pallet1.diameter/2, pallet2.distance + pallet2.diameter/2)) * 1.9;
-    if (centrediameter < 0) centrediameter = 0;
-
     escapeWheel = makeEscapeWheel({
         numteeth: numteeth,
         lockangle: lockangle,
         impulseangle: impulseangle,
         centrediameter: centrediameter,
-        lockdiameter: lockdiameter,
-        impulsediameter: impulsediameter,
+        locklength: locklength,
+        impulselength: impulselength,
     });
-    Body.translate(escapeWheel, {x:WIDTH/3, y:HEIGHT/2});
+    Body.translate(escapeWheel, {x:WIDTH/2, y:HEIGHT*2/3});
 
     escapeWheelConstraint = Constraint.create({
         pointA: {x:escapeWheel.position.x, y:escapeWheel.position.y},
@@ -93,16 +90,14 @@ function update() {
 //  - lockangle (degrees from radial of locking face)
 //  - impulseangle (degrees from radial of impulse face)
 //  - centrediameter (mm, diameter of central circle)
-//  - lockdiameter (mm, to outside of locking face)
-//  - impulsediameter (mm, to outside of impulse face)
+//  - locklength (mm, length of locking face
+//  - impulselength (mm, length of impulse face
 function makeEscapeWheel(opts) {
     let parts = [];
     parts.push(Bodies.circle(0, 0, PX_PER_MM * opts.centrediameter/2));
 
     for (let i = 0; i < opts.numteeth; i++) {
-        let tooth = makeEscapeTooth(opts);
-        Body.rotate(tooth, i*(2*Math.PI/opts.numteeth), {x:0, y:0});
-        parts.push(tooth);
+        parts.push(makeEscapeTooth(opts, i*(360/opts.numteeth)));
     }
 
     return Body.create({ parts: parts });
@@ -110,9 +105,20 @@ function makeEscapeWheel(opts) {
 
 // create 1 escape tooth, with centre of wheel at (0,0)
 function makeEscapeTooth(opts, angle) {
-    let b = Bodies.rectangle(0, 0, 10, PX_PER_MM*opts.impulsediameter/2);
-    Body.translate(b, {x: 0, y: PX_PER_MM*opts.impulsediameter/4});
-    return b;
+    let startpoint = {x: 0, y: PX_PER_MM*opts.centrediameter/2};
+    let lockpoint = Vector.add(startpoint, Vector.rotate({x: 0, y: PX_PER_MM*opts.locklength}, opts.lockangle*Math.PI/180));
+    let impulsepoint = Vector.add(lockpoint, Vector.rotate({x: 0, y: PX_PER_MM*opts.impulselength}, opts.impulseangle*Math.PI/180));
+
+    startpoint = Vector.rotate(startpoint, angle*Math.PI/180);
+    lockpoint = Vector.rotate(lockpoint, angle*Math.PI/180);
+    impulsepoint = Vector.rotate(impulsepoint, angle*Math.PI/180);
+
+    // Bodies.fromVertices() automatically translates your vertices so
+    // that the centre of mass is at the (x,y) coordinates you pass to it,
+    // so we need to first calculate the mean coordinate so that we can put
+    // it at the place we asked for
+    let mean = Vertices.mean(Vertices.create([startpoint,lockpoint,impulsepoint]));
+    return Bodies.fromVertices(mean.x, mean.y, [startpoint, lockpoint, impulsepoint]);
 }
 
 update();

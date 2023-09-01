@@ -65,16 +65,14 @@ Events.on(engine, 'afterUpdate', function() {
     escapeWheel.position = {x:WIDTH/2, y:HEIGHT*2/3};
     escapeWheel.velocity = {x: 0, y: 0};
    // palletBody.position = {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep}; // XXX: commented out because it makes things unstable
-    /*palletBody.velocity = {x:0, y:0};
+   palletBody.velocity = {x:0, y:0};
 
     // limit banking
-    if (palletBody.angle < banking1*Math.PI/180) {
+    /*if (palletBody.angle < banking1*Math.PI/180) {
         palletBody.angle = banking1*Math.PI/180;
-        Body.setAngularVelocity(palletBody, 0);
     }
     if (palletBody.angle > banking2*Math.PI/180) {
-        palletBody.torque = banking2*Math.PI/180;
-        Body.setAngularVelocity(palletBody, 0);
+        palletBody.angle = banking2*Math.PI/180;
     }*/
 
     // rotate escape wheel
@@ -86,21 +84,21 @@ function update() {
     // TODO: don't update if nothing has changed
 
     // general
-    let pivotsep = 31; // mm
+    let pivotsep = val('pivotsep'); // mm
     let banking1 = -15; // deg
     let banking2 = 15; // deg
-    let clockwise = true;
+    let clockwise = checked('clockwise');
 
     // pallets
     let pallet1 = {
-        angle: -45, // deg
-        distance: 16, // mm
-        diameter: 3, // mm
+        angle: -val('pallet1angle'), // deg
+        distance: val('pallet1distance'), // mm
+        diameter: val('pallet1diameter'), // mm
     };
     let pallet2 = {
-        angle: 45, // deg
-        distance: 16, // mm
-        diameter: 3, // mm
+        angle: val('pallet2angle'), // deg
+        distance: val('pallet2distance'), // mm
+        diameter: val('pallet2diameter'), // mm
     };
 
     // escape wheel
@@ -216,7 +214,7 @@ function makePallet(opts) {
 
 update();
 
-for (let elem of ['numteeth', 'centrediameter', 'lockangle', 'impulseangle', 'locklength', 'impulselength']) {
+for (let elem of ['numteeth', 'centrediameter', 'lockangle', 'impulseangle', 'locklength', 'impulselength', 'pivotsep', 'clockwise', 'pallet1angle', 'pallet1distance', 'pallet1diameter', 'pallet2angle', 'pallet2distance', 'pallet2diameter']) {
     el(elem).onchange = update;
     el(elem).onkeyup = update;
 }

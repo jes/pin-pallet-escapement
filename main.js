@@ -62,7 +62,8 @@ Events.on(engine, 'afterUpdate', function() {
     let banking2 = 15; // deg
 
     // fix centres
-    escapeWheel.position = {x:WIDTH/2, y:HEIGHT*2/3};
+    if (val('numteeth') > 1)
+        escapeWheel.position = {x:WIDTH/2, y:HEIGHT*2/3};
     escapeWheel.velocity = {x: 0, y: 0};
    // palletBody.position = {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep}; // XXX: commented out because it makes things unstable
    palletBody.velocity = {x:0, y:0};

@@ -96,6 +96,8 @@ var MouseConstraintRotate = {};
                             var part = body.parts[j];
                             if (Vertices.contains(part.vertices, mouse.position)) {
                                 mouseConstraint.body = body;
+                                mouseConstraint.initbodyangle = body.angle;
+                                mouseConstraint.initangle = Vector.angle(body.position, mouse.position);
 
                                 Events.trigger(mouseConstraint, 'startdrag', { mouse: mouse, body: body });
 
@@ -107,7 +109,7 @@ var MouseConstraintRotate = {};
             }
 
             if (body) {
-                Body.setAngle(body, Vector.angle(mouse.position, body.position));
+                Body.setAngle(body, mouseConstraint.initbodyangle + Vector.angle(body.position, mouse.position) - mouseConstraint.initangle);
                 Body.setAngularVelocity(body, 0);
                 Sleeping.set(body, false);
             }

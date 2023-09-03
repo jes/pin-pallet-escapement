@@ -10,12 +10,14 @@ let Engine = Matter.Engine,
     Constraint = Matter.Constraint,
     Vector = Matter.Vector,
     Vertices = Matter.Vertices,
-    Mouse = Matter.Mouse;
+    Mouse = Matter.Mouse,
+    MouseConstraint = Matter.MouseConstraint;
 
 let engine = Engine.create({
-    constraintIterations: 50,
-    positionIterations: 50,
-    velocityIterations: 50,
+    constraintIterations: 1000,
+    positionIterations: 1000,
+    velocityIterations: 1000,
+    gravity: {scale: 0.0},
 });
 let render = Render.create({
     element: el('matter'),
@@ -29,7 +31,7 @@ let runner = Runner.create({
     delta: 1000/240,
 });
     var mouse = Mouse.create(render.canvas),
-        mouseConstraint = MouseConstraintRotate.create(engine, {
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 1.0,
@@ -41,6 +43,13 @@ let runner = Runner.create({
 
     Composite.add(engine.world, mouseConstraint);
 
+let frictionopts = {
+    friction: 0.1,
+    frictionAir: 0.01,
+    frictionStatic: 0.01,
+    restitution: 0.1,
+};
+
 let WIDTH = el('matter').clientWidth;
 let HEIGHT = el('matter').clientHeight;
 let MM_PER_PX = 1;
@@ -51,8 +60,12 @@ Runner.run(runner, engine);
 
 let escapeWheel = null;
 let escapeWheelConstraint = null;
-let palletBody = null;
-let palletBodyConstraint = null;
+let palletBody1 = null;
+let palletBody2 = null;
+let palletConstraint1 = null;
+let palletConstraint2 = null;
+let palletConstraint3 = null;
+let composites = null;
 
 Events.on(engine, 'afterUpdate', function() {
     if (!escapeWheel) return;
@@ -62,11 +75,10 @@ Events.on(engine, 'afterUpdate', function() {
     let banking2 = 15; // deg
 
     // fix centres
-    if (val('numteeth') > 1)
-        escapeWheel.position = {x:WIDTH/2, y:HEIGHT*2/3};
-    escapeWheel.velocity = {x: 0, y: 0};
+    /*if (val('numteeth') > 1)
+        escapeWheel.position = {x:WIDTH/2, y:HEIGHT*2/3};*/
+    Body.setVelocity(escapeWheel, {x:0, y:0});
    // palletBody.position = {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep}; // XXX: commented out because it makes things unstable
-   palletBody.velocity = {x:0, y:0};
 
     // limit banking
     /*if (palletBody.angle < banking1*Math.PI/180) {
@@ -78,7 +90,7 @@ Events.on(engine, 'afterUpdate', function() {
 
     // rotate escape wheel
     if (Body.getAngularVelocity(escapeWheel) < 0.01)
-        escapeWheel.torque = 0.0001;
+        escapeWheel.torque = 0.1;
 });
 
 function update() {
@@ -111,15 +123,18 @@ function update() {
     let impulselength = val('impulselength'); // mm
 
     // view scaling
-    let width_mm = (centrediameter + locklength*2 + impulselength*2) * 1.5;
+    let width_mm = (centrediameter + locklength*2 + impulselength*2) * 1.2;
     MM_PER_PX = width_mm / WIDTH;
     PX_PER_MM = 1 / MM_PER_PX;
 
     if (escapeWheel) {
         Composite.remove(engine.world, escapeWheel);
         Composite.remove(engine.world, escapeWheelConstraint);
-        Composite.remove(engine.world, palletBody);
-        Composite.remove(engine.world, palletBodyConstraint);
+        Composite.remove(engine.world, palletBody1);
+        Composite.remove(engine.world, palletBody2);
+        Composite.remove(engine.world, palletConstraint1);
+        Composite.remove(engine.world, palletConstraint2);
+        Composite.remove(engine.world, palletConstraint3);
     }
 
     escapeWheel = makeEscapeWheel({
@@ -130,7 +145,6 @@ function update() {
         locklength: locklength,
         impulselength: impulselength,
     });
-    Body.setMass(escapeWheel, 0.001);
     Body.translate(escapeWheel, {x:WIDTH/2, y:HEIGHT*2/3});
 
     escapeWheelConstraint = Constraint.create({
@@ -140,25 +154,32 @@ function update() {
     });
     Composite.add(engine.world, [escapeWheel, escapeWheelConstraint]);
 
-    let p1 = makePallet(pallet1);
-    let p2 = makePallet(pallet2);
-    let triangle = Bodies.fromVertices(0, 0, [
-        {x: 0, y: 0},
-        {x: p1.position.x, y: p1.position.y},
-        {x: p2.position.x, y: p2.position.y},
-    ]);
-    Body.setMass(triangle, 0.001);
+    palletBody1 = makePallet(pallet1);
+    palletBody2 = makePallet(pallet2);
 
-    palletBody = Body.create({parts: [p1, p2, triangle], friction:0.0, frictionAir: 0.1, frictionStatic: 0.1, restitution: 0.0});
-    Body.translate(palletBody, {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep});
+    Body.translate(palletBody1, {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep});
+    Body.translate(palletBody2, {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep});
 
-    palletBodyConstraint = Constraint.create({
+    palletConstraint1 = Constraint.create({
         pointA: {x: WIDTH/2, y: escapeWheel.position.y-PX_PER_MM*pivotsep},
-        bodyB: palletBody,
-        pointB: {x:0, y:-15},
+        bodyB: palletBody1,
+        pointB: {x:0, y:0},
     });
 
-    Composite.add(engine.world, [palletBody, palletBodyConstraint]);
+    palletConstraint2 = Constraint.create({
+        pointA: {x: WIDTH/2, y: escapeWheel.position.y-PX_PER_MM*pivotsep},
+        bodyB: palletBody2,
+        pointB: {x:0, y:0},
+    });
+
+    palletConstraint3 = Constraint.create({
+        bodyA: palletBody1,
+        pointA: {x:0, y:0},
+        bodyB: palletBody2,
+        pointB: {x:0, y:0},
+    });
+
+    Composite.add(engine.world, [palletBody1, palletBody2, palletConstraint1, palletConstraint2, palletConstraint3]);
 }
 
 // opts:
@@ -176,7 +197,7 @@ function makeEscapeWheel(opts) {
         parts.push(makeEscapeTooth(opts, i*(360/opts.numteeth)));
     }
 
-    return Body.create({ parts: parts, friction: 0.0, frictionAir: 0.1, frictionStatic: 0.1, restitution: 0.0 });
+    return Body.create({ parts: parts, ...frictionopts});
 }
 
 // create an escape wheel tooth at the given angle
@@ -206,10 +227,9 @@ function makeEscapeTooth(opts, angle) {
 //  - distance
 //  - diameter
 function makePallet(opts) {
-    let x = opts.distance/2 * Math.sin(opts.angle * Math.PI/180);
-    let y = opts.distance/2 * Math.cos(opts.angle * Math.PI/180);
-    let b = Bodies.circle(PX_PER_MM*x, PX_PER_MM*y, PX_PER_MM*(opts.diameter/2), {friction:0.1, frictionAir: 0.1, frictionStatic: 0.1, restitution: 0.0});
-    Body.setMass(b, 0.001);
+    let x = opts.distance * Math.sin(opts.angle * Math.PI/180);
+    let y = opts.distance * Math.cos(opts.angle * Math.PI/180);
+    let b = Bodies.circle(PX_PER_MM*x, PX_PER_MM*y, PX_PER_MM*(opts.diameter/2), frictionopts);
     return b;
 }
 

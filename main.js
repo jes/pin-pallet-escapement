@@ -65,32 +65,17 @@ let palletBody2 = null;
 let palletConstraint1 = null;
 let palletConstraint2 = null;
 let palletConstraint3 = null;
-let composites = null;
+let bankingPin1 = null;
+let bankingPin2 = null;
+let bankingPinConstraint1 = null;
+let bankingPinConstraint2 = null;
 
 Events.on(engine, 'afterUpdate', function() {
     if (!escapeWheel) return;
 
-    let pivotsep = 31; // mm
-    let banking1 = -15; // deg
-    let banking2 = 15; // deg
-
-    // fix centres
-    /*if (val('numteeth') > 1)
-        escapeWheel.position = {x:WIDTH/2, y:HEIGHT*2/3};*/
-    Body.setVelocity(escapeWheel, {x:0, y:0});
-   // palletBody.position = {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep}; // XXX: commented out because it makes things unstable
-
-    // limit banking
-    /*if (palletBody.angle < banking1*Math.PI/180) {
-        palletBody.angle = banking1*Math.PI/180;
-    }
-    if (palletBody.angle > banking2*Math.PI/180) {
-        palletBody.angle = banking2*Math.PI/180;
-    }*/
-
     // rotate escape wheel
     if (Body.getAngularVelocity(escapeWheel) < 0.01)
-        escapeWheel.torque = 0.1;
+        escapeWheel.torque = 0.01;
 });
 
 function update() {
@@ -98,8 +83,7 @@ function update() {
 
     // general
     let pivotsep = val('pivotsep'); // mm
-    let banking1 = -15; // deg
-    let banking2 = 15; // deg
+    let banking = val('banking'); // deg
 
     // pallets
     let pallet1 = {
@@ -134,6 +118,10 @@ function update() {
         Composite.remove(engine.world, palletConstraint1);
         Composite.remove(engine.world, palletConstraint2);
         Composite.remove(engine.world, palletConstraint3);
+        Composite.remove(engine.world, bankingPin1);
+        Composite.remove(engine.world, bankingPin2);
+        Composite.remove(engine.world, bankingPinConstraint1);
+        Composite.remove(engine.world, bankingPinConstraint2);
     }
 
     escapeWheel = makeEscapeWheel({
@@ -144,6 +132,7 @@ function update() {
         locklength: locklength,
         impulselength: impulselength,
     });
+    Body.setMass(escapeWheel, 0.1);
     Body.translate(escapeWheel, {x:WIDTH/2, y:HEIGHT*2/3});
 
     escapeWheelConstraint = Constraint.create({
@@ -179,6 +168,34 @@ function update() {
     });
 
     Composite.add(engine.world, [palletBody1, palletBody2, palletConstraint1, palletConstraint2, palletConstraint3]);
+
+    // TODO: the angle needs to be more, to account for the diameter
+    bankingPin1 = makePallet({
+        angle: pallet1.angle - banking,
+        distance: pallet1.distance,
+        diameter: pallet1.diameter,
+    });
+    bankingPin2 = makePallet({
+        angle: pallet2.angle + banking,
+        distance: pallet2.distance,
+        diameter: pallet2.diameter,
+    });
+
+    Body.translate(bankingPin1, {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep});
+    Body.translate(bankingPin2, {x:WIDTH/2, y:escapeWheel.position.y-PX_PER_MM*pivotsep});
+
+    bankingPinConstraint1 = Constraint.create({
+        pointA: {x: bankingPin1.position.x, y: bankingPin1.position.y},
+        bodyB: bankingPin1,
+        pointB: {x:0, y:0},
+    });
+    bankingPinConstraint2 = Constraint.create({
+        pointA: {x: bankingPin2.position.x, y: bankingPin2.position.y},
+        bodyB: bankingPin2,
+        pointB: {x:0, y:0},
+    });
+
+    Composite.add(engine.world, [bankingPin1, bankingPin2, bankingPinConstraint1, bankingPinConstraint2]);
 }
 
 // opts:
@@ -234,7 +251,7 @@ function makePallet(opts) {
 
 update();
 
-for (let elem of ['numteeth', 'centrediameter', 'lockangle', 'impulseangle', 'locklength', 'impulselength', 'pivotsep', 'pallet1angle', 'pallet1distance', 'pallet1diameter', 'pallet2angle', 'pallet2distance', 'pallet2diameter']) {
+for (let elem of ['numteeth', 'centrediameter', 'lockangle', 'impulseangle', 'locklength', 'impulselength', 'pivotsep', 'banking', 'pallet1angle', 'pallet1distance', 'pallet1diameter', 'pallet2angle', 'pallet2distance', 'pallet2diameter']) {
     el(elem).onchange = update;
     el(elem).onkeyup = update;
 }

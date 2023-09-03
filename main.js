@@ -100,7 +100,6 @@ function update() {
     let pivotsep = val('pivotsep'); // mm
     let banking1 = -15; // deg
     let banking2 = 15; // deg
-    let clockwise = checked('clockwise');
 
     // pallets
     let pallet1 = {
@@ -235,7 +234,7 @@ function makePallet(opts) {
 
 update();
 
-for (let elem of ['numteeth', 'centrediameter', 'lockangle', 'impulseangle', 'locklength', 'impulselength', 'pivotsep', 'clockwise', 'pallet1angle', 'pallet1distance', 'pallet1diameter', 'pallet2angle', 'pallet2distance', 'pallet2diameter']) {
+for (let elem of ['numteeth', 'centrediameter', 'lockangle', 'impulseangle', 'locklength', 'impulselength', 'pivotsep', 'pallet1angle', 'pallet1distance', 'pallet1diameter', 'pallet2angle', 'pallet2distance', 'pallet2diameter']) {
     el(elem).onchange = update;
     el(elem).onkeyup = update;
 }

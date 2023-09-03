@@ -92,6 +92,8 @@ Events.on(engine, 'afterUpdate', function() {
         periodEMA = 0.9 * periodEMA + 0.1 * period;
         let freq = 1.0 / periodEMA; // Hz
 
+        // TODO: when we are computing minPallet1Angle/maxPallet1Angle, use the same computation for the "anchorangle" view in the scope
+
         txt('period', periodEMA);
         txt('frequency', freq);
 

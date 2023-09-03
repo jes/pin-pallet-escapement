@@ -30,18 +30,18 @@ let render = Render.create({
 let runner = Runner.create({
     delta: 1000/240,
 });
-    var mouse = Mouse.create(render.canvas),
-        mouseConstraint = MouseConstraint.create(engine, {
-            mouse: mouse,
-            constraint: {
-                stiffness: 1.0,
-                render: {
-                    visible: true,
-                }
+var mouse = Mouse.create(render.canvas),
+    mouseConstraint = MouseConstraint.create(engine, {
+        mouse: mouse,
+        constraint: {
+            stiffness: 1.0,
+            render: {
+                visible: true,
             }
-        });
+        }
+    });
 
-    Composite.add(engine.world, mouseConstraint);
+Composite.add(engine.world, mouseConstraint);
 
 let frictionopts = {
     friction: 0.1,
@@ -70,12 +70,41 @@ let bankingPin2 = null;
 let bankingPinConstraint1 = null;
 let bankingPinConstraint2 = null;
 
+let minPallet1Angle = 0;
+let maxPallet1Angle = 0;
+let lastPallet1XVel = 0;
+let lastCycleStart = Date.now();
+
+let periodEMA = 0.0;
+
+let scope = new Scope(el('scopes'));
+scope.field = 'escapewheelangle';
+
 Events.on(engine, 'afterUpdate', function() {
     if (!escapeWheel) return;
 
+    // the cycle starts when pallet1 starts moving to the right
+    // TODO: detects false cycles when pallets bounce
+    if (palletBody1.velocity.x > 0 && lastPallet1XVel < 0) {
+        let now = Date.now();
+        let period = (now - lastCycleStart) / 1000.0; // secs
+
+        periodEMA = 0.9 * periodEMA + 0.1 * period;
+        let freq = 1.0 / periodEMA; // Hz
+
+        txt('period', periodEMA);
+        txt('frequency', freq);
+
+        lastCycleStart = now;
+    }
+
+    lastPallet1XVel = palletBody1.velocity.x;
+
     // rotate escape wheel
-    if (Body.getAngularVelocity(escapeWheel) < 0.01)
-        escapeWheel.torque = 0.01;
+    escapeWheel.torque = 0.01;
+
+    scope.update();
+    scope.draw();
 });
 
 function update() {
@@ -246,6 +275,7 @@ function makePallet(opts) {
     let x = opts.distance * Math.sin(opts.angle * Math.PI/180);
     let y = opts.distance * Math.cos(opts.angle * Math.PI/180);
     let b = Bodies.circle(PX_PER_MM*x, PX_PER_MM*y, PX_PER_MM*(opts.diameter/2), frictionopts);
+    Body.setMass(b, 1);
     return b;
 }
 

@@ -119,7 +119,7 @@ Events.on(engine, 'afterUpdate', function() {
     lastPallet1XVel = palletBody1.velocity.x;
 
     // rotate escape wheel
-    escapeWheel.torque = 0.01;
+    escapeWheel.torque = val('torque');
 
     scope.update();
     scope.draw();
@@ -251,14 +251,14 @@ function update() {
         pointA: {x:0,y:0},
         bodyB: palletBody1,
         pointB: {x:0,y:0},
-        stiffness: 0.000001,
+        stiffness: val('springstiffness'),
     });
     spring2 = Constraint.create({
         bodyA: bankingPin2,
         pointA: {x:0,y:0},
         bodyB: palletBody2,
         pointB: {x:0,y:0},
-        stiffness: 0.000001,
+        stiffness: val('springstiffness'),
     });
     Composite.add(engine.world, [spring1, spring2]);
 }
@@ -311,13 +311,13 @@ function makePallet(opts) {
     let x = opts.distance * Math.sin(opts.angle * Math.PI/180);
     let y = opts.distance * Math.cos(opts.angle * Math.PI/180);
     let b = Bodies.circle(PX_PER_MM*x, PX_PER_MM*y, PX_PER_MM*(opts.diameter/2), frictionopts);
-    Body.setMass(b, 0.01);
+    Body.setMass(b, val('palletmass'));
     return b;
 }
 
 update();
 
-for (let elem of ['numteeth', 'centrediameter', 'lockangle', 'impulseangle', 'locklength', 'impulselength', 'pivotsep', 'banking', 'pallet1angle', 'pallet1distance', 'pallet1diameter', 'pallet2angle', 'pallet2distance', 'pallet2diameter']) {
+for (let elem of ['numteeth', 'centrediameter', 'lockangle', 'impulseangle', 'locklength', 'impulselength', 'pivotsep', 'banking', 'pallet1angle', 'pallet1distance', 'pallet1diameter', 'pallet2angle', 'pallet2distance', 'pallet2diameter', 'palletmass', 'springstiffness']) {
     el(elem).onchange = update;
     el(elem).onkeyup = update;
 }

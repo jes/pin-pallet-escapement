@@ -14,9 +14,6 @@ let Engine = Matter.Engine,
     MouseConstraint = Matter.MouseConstraint;
 
 let engine = Engine.create({
-    constraintIterations: 1000,
-    positionIterations: 1000,
-    velocityIterations: 1000,
     gravity: {scale: 0.0},
 });
 let render = Render.create({
@@ -27,9 +24,7 @@ let render = Render.create({
         height: 600,
     },
 });
-let runner = Runner.create({
-    delta: 1000/240,
-});
+let runner = Runner.create({});
 var mouse = Mouse.create(render.canvas),
     mouseConstraint = MouseConstraint.create(engine, {
         mouse: mouse,

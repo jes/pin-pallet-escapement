@@ -109,9 +109,9 @@ Scope.prototype.getValue = function() {
     switch (this.fieldselect.value) {
         case 'escapewheelangle': return (escapeWheel.angle*180/Math.PI)%360;
         case 'escapetoothangle': return (escapeWheel.angle*180/Math.PI)%(360/val('numteeth'));
-        case 'anchorangle': return 0; // TODO: compute relative angle from palletBody1.position to the pivot point?
+        case 'anchorangle': return anchorAngle;
         case 'escapewheelvel': return (Body.getAngularVelocity(escapeWheel)*180/Math.PI);
-        case 'anchorvel': return (Vector.magnitude(palletBody1.velocity) / (Math.PI * val('pallet1diameter')) * 360.0); // TODO: is this right? what about direction?
+        case 'anchorvel': return anchorAngularVel;
     }
     console.log("unrecognised field name: " + this.fieldselect.value);
     return 0;

@@ -44,7 +44,7 @@ var mouse = Mouse.create(render.canvas),
 Composite.add(engine.world, mouseConstraint);
 
 let frictionopts = {
-    friction: 0.1,
+    friction: 0.0,
     frictionAir: 0.01,
     frictionStatic: 0.01,
     restitution: 0.1,
@@ -69,9 +69,13 @@ let bankingPin1 = null;
 let bankingPin2 = null;
 let bankingPinConstraint1 = null;
 let bankingPinConstraint2 = null;
+let spring1 = null;
+let spring2 = null;
 
-let minPallet1Angle = 0;
-let maxPallet1Angle = 0;
+let minPallet1Angle = null;
+let maxPallet1Angle = null;
+let anchorAngle = 0;
+let anchorAngularVel = 0;
 let lastPallet1XVel = 0;
 let lastCycleStart = Date.now();
 
@@ -92,13 +96,25 @@ Events.on(engine, 'afterUpdate', function() {
         periodEMA = 0.9 * periodEMA + 0.1 * period;
         let freq = 1.0 / periodEMA; // Hz
 
-        // TODO: when we are computing minPallet1Angle/maxPallet1Angle, use the same computation for the "anchorangle" view in the scope
+        let amplitude = maxPallet1Angle-minPallet1Angle;
 
         txt('period', periodEMA);
         txt('frequency', freq);
+        txt('amplitude', amplitude);
 
         lastCycleStart = now;
+        minPallet1Angle = null;
+        maxPallet1Angle = null;
     }
+
+    let oldAnchorAngle = anchorAngle;
+    let p1 = palletBody1.position;
+    let p2 = palletConstraint1.pointA;
+    anchorAngle = Vector.angle(p2,p1) * 180/Math.PI - 90;
+    if (minPallet1Angle == null || anchorAngle < minPallet1Angle) minPallet1Angle = anchorAngle;
+    if (maxPallet1Angle == null || anchorAngle > maxPallet1Angle) maxPallet1Angle = anchorAngle;
+
+    anchorAngularVel = (anchorAngle-oldAnchorAngle) / engine.timing.lastDelta;
 
     lastPallet1XVel = palletBody1.velocity.x;
 
@@ -153,6 +169,8 @@ function update() {
         Composite.remove(engine.world, bankingPin2);
         Composite.remove(engine.world, bankingPinConstraint1);
         Composite.remove(engine.world, bankingPinConstraint2);
+        Composite.remove(engine.world, spring1);
+        Composite.remove(engine.world, spring2);
     }
 
     escapeWheel = makeEscapeWheel({
@@ -227,6 +245,22 @@ function update() {
     });
 
     Composite.add(engine.world, [bankingPin1, bankingPin2, bankingPinConstraint1, bankingPinConstraint2]);
+
+    spring1 = Constraint.create({
+        bodyA: bankingPin1,
+        pointA: {x:0,y:0},
+        bodyB: palletBody1,
+        pointB: {x:0,y:0},
+        stiffness: 0.000001,
+    });
+    spring2 = Constraint.create({
+        bodyA: bankingPin2,
+        pointA: {x:0,y:0},
+        bodyB: palletBody2,
+        pointB: {x:0,y:0},
+        stiffness: 0.000001,
+    });
+    Composite.add(engine.world, [spring1, spring2]);
 }
 
 // opts:
@@ -277,7 +311,7 @@ function makePallet(opts) {
     let x = opts.distance * Math.sin(opts.angle * Math.PI/180);
     let y = opts.distance * Math.cos(opts.angle * Math.PI/180);
     let b = Bodies.circle(PX_PER_MM*x, PX_PER_MM*y, PX_PER_MM*(opts.diameter/2), frictionopts);
-    Body.setMass(b, 1);
+    Body.setMass(b, 0.01);
     return b;
 }
 

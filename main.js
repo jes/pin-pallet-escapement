@@ -71,6 +71,7 @@ let minPallet1Angle = null;
 let maxPallet1Angle = null;
 let anchorAngle = 0;
 let anchorAngularVel = 0;
+let anchorAngleIntegral = 0;
 let lastPallet1XVel = 0;
 let lastCycleStart = Date.now();
 
@@ -110,6 +111,7 @@ Events.on(engine, 'afterUpdate', function() {
     if (maxPallet1Angle == null || anchorAngle > maxPallet1Angle) maxPallet1Angle = anchorAngle;
 
     anchorAngularVel = (anchorAngle-oldAnchorAngle) / engine.timing.lastDelta;
+    anchorAngleIntegral += anchorAngle / engine.timing.lastDelta;
 
     lastPallet1XVel = palletBody1.velocity.x;
 
@@ -122,6 +124,8 @@ Events.on(engine, 'afterUpdate', function() {
 
 function update() {
     // TODO: don't update if nothing has changed
+
+    anchorAngleIntegral = 0;
 
     // general
     let pivotsep = val('pivotsep'); // mm

@@ -105,7 +105,7 @@ Events.on(engine, 'afterUpdate', function() {
     let oldAnchorAngle = anchorAngle;
     let p1 = palletBody1.position;
     let p2 = palletConstraint1.pointA;
-    anchorAngle = Vector.angle(p2,p1) * 180/Math.PI - 90;
+    anchorAngle = val('pallet1angle') - (Vector.angle(p2,p1) * 180/Math.PI - 90);
     if (minPallet1Angle == null || anchorAngle < minPallet1Angle) minPallet1Angle = anchorAngle;
     if (maxPallet1Angle == null || anchorAngle > maxPallet1Angle) maxPallet1Angle = anchorAngle;
 

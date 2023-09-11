@@ -72,7 +72,7 @@ let maxPallet1Angle = null;
 let anchorAngle = 0;
 let anchorAngularVel = 0;
 let anchorAngleIntegral = 0;
-let lastPallet1XVel = 0;
+let lastAnchorAngle = 0;
 let lastCycleStart = Date.now();
 
 let periodEMA = 0.0;
@@ -83,13 +83,21 @@ scope.field = 'escapewheelangle';
 Events.on(engine, 'afterUpdate', function() {
     if (!escapeWheel) return;
 
-    // the cycle starts when pallet1 starts moving to the right
-    // TODO: detects false cycles when pallets bounce
-    if (palletBody1.velocity.x > 0 && lastPallet1XVel < 0) {
+    let oldAnchorAngle = anchorAngle;
+    let p1 = palletBody1.position;
+    let p2 = palletConstraint1.pointA;
+    anchorAngle = val('pallet1angle') - (Vector.angle(p2,p1) * 180/Math.PI - 90);
+    if (minPallet1Angle == null || anchorAngle < minPallet1Angle) minPallet1Angle = anchorAngle;
+    if (maxPallet1Angle == null || anchorAngle > maxPallet1Angle) maxPallet1Angle = anchorAngle;
+
+    anchorAngularVel = (anchorAngle-oldAnchorAngle) / engine.timing.lastDelta;
+    anchorAngleIntegral += anchorAngle / engine.timing.lastDelta;
+
+    if (anchorAngle > 0 && lastAnchorAngle < 0) {
         let now = Date.now();
         let period = (now - lastCycleStart) / 1000.0; // secs
 
-        periodEMA = 0.9 * periodEMA + 0.1 * period;
+        periodEMA = 0.8 * periodEMA + 0.2 * period;
         let freq = 1.0 / periodEMA; // Hz
 
         let amplitude = maxPallet1Angle-minPallet1Angle;
@@ -102,18 +110,7 @@ Events.on(engine, 'afterUpdate', function() {
         minPallet1Angle = null;
         maxPallet1Angle = null;
     }
-
-    let oldAnchorAngle = anchorAngle;
-    let p1 = palletBody1.position;
-    let p2 = palletConstraint1.pointA;
-    anchorAngle = val('pallet1angle') - (Vector.angle(p2,p1) * 180/Math.PI - 90);
-    if (minPallet1Angle == null || anchorAngle < minPallet1Angle) minPallet1Angle = anchorAngle;
-    if (maxPallet1Angle == null || anchorAngle > maxPallet1Angle) maxPallet1Angle = anchorAngle;
-
-    anchorAngularVel = (anchorAngle-oldAnchorAngle) / engine.timing.lastDelta;
-    anchorAngleIntegral += anchorAngle / engine.timing.lastDelta;
-
-    lastPallet1XVel = palletBody1.velocity.x;
+    lastAnchorAngle = anchorAngle;
 
     // rotate escape wheel
     escapeWheel.torque = val('torque');
